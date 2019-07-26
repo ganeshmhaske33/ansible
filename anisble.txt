@@ -1,0 +1,99 @@
+# By default ansible use ssh connection. Means public key should be copy on remote server.
+
+# ansible version = ansible --version
+
+# Used copy of /etc/ansible for your project, having structor to use in ansible.
+
+# update ansible.cfg as per your requirement, eg. inventory for project
+
+# update inventory for project
+
+# ansible 
+    
+    ansible <hosts> [-m <module_name>] -a <"arguments"> -u <username> [--become]
+
+    host = host group in inventory 
+
+    -m   = module to use, eg ping, user, shell
+
+    -a   = addtional arguments [ see ansible-doc module name for more info ]
+
+    -u   = username to execute command 
+
+    -b   = to become sudo 
+
+    -K   = to asked sudo password at remote machine
+
+    -i   = to pass custome inventory file, or it will take from ansible.cfg 
+
+    following is the content of inventory file
+
+    [dbservers]
+    db1.mercury.com
+    db2.venus.com
+
+    [webservers]
+    servera.earth.com
+    serverb.jupyter.com
+    
+    e.g ansible dbservers -m shell -a 'df -h' -u ganesh -b -K
+
+        In above example shell module is use and execute command on dbservers server only and exclude webservers and show output.
+    
+    e.g ansible webservers -m user -a 'name=ganesh' -b -K 
+
+        In above example user module is use and create user with name ganesh
+
+    e.g ansible webservers -m user -a 'name=ganesh state=absent' -b -K
+
+        In above example user module is use and delete ganesh user
+
+# Role is list of command that ansible execute on remote server in given order.
+
+# Role must be reside inside roles directory and must contain atlest one directory task. which contain file name main.yaml 
+
+    e.g roles/basic/task/main.yaml
+
+        In  above example 'basic' is role
+
+# following is the syntax to defined a role. main.yaml [ indentention is most imp in yaml file ]
+
+- name : "Install VIM"                  # name for the role
+  apt : pkg=vim state=present           # module to use
+
+# following is the syntax to defined a playbook that can be execute. 
+
+---                                     # imp to tell that this is yaml file 
+- hosts: all                            # must contain hosts
+  become: true                          # become sudo user
+  roles:                                # specifed role for to be execute
+  - basic
+
+# following is the syntax is for debuging of role
+
+file = roles/ping/tasks/main.yaml   
+
+- name : "Simple command to check debug module"         
+  shell : getent passwd | grep 'ganesh'             # simple shell module
+  register : env                                    # here i register env to print further in debug 
+
+- name : "Check user the user"                      
+  shell : |                                         # shell module use with multiple command
+    whoami 
+    ls /
+  register : res
+
+- debug : 
+    var: res.stdout_lines, env.stdout_lines         # here i use above variable env and res and .stdout_lines
+
+# collectand display the discovered facts
+# for the host
+$ ansible hostname -m setup
+
+# How to check the manual for plugin
+
+ansible-doc -t <plugin name> function 
+
+ansible-doc -t lookup -l                            # Will list all the function
+
+eg : ansible-doc -t lookup file
