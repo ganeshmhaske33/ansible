@@ -1,0 +1,14 @@
+- hosts: localhost
+  gather_facts: false
+
+  vars:
+    all_files: "{{ lookup('file', '/tmp/file').splitlines() }}"
+
+  tasks:
+     - name: "This will print all the files in /tmp/file "
+       # file: path={{ item | regex_replace('^$\"',"") }} mode=755
+       shell: chmod 755 {{ item }}
+       with_items: "{{ all_files }}" 
+       args:
+        chdir: "/tmp"
+

@@ -1,0 +1,31 @@
+- hosts: localhost
+  gather_facts: false
+
+  tasks:
+     - name: "lookup with command using pipe"
+       vars:
+          f: "{{ lookup('pipe','cat /etc/passwd | grep ganesh | cut -d : -f 1') }}"
+       debug:
+         msg: "var f = {{f}} "
+
+     - name: "read env var"
+       vars:
+          d: "{{ lookup('env', 'HOME') }}"
+       debug:
+         msg: "var d = {{d}} "
+
+     - name: "with sequence"
+       file: path="/tmp/dir{{item}}" state=absent
+       with_sequence: start=1 end=4
+
+     - name: "Random password generator password."
+       vars: 
+          p: "{{lookup('password','/tmp/pass chars=ascii_letters,digit length=10')}}"
+       debug:
+         msg: "done {{ p }}"
+
+     - name: "Random password generator with passwordstore."
+       vars: 
+          sp: "{{lookup('passwordstore','/tmp/pass')}}"
+       debug:
+         msg: "done {{ sp }}"

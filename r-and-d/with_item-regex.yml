@@ -1,0 +1,13 @@
+- hosts: localhost
+  gather_facts: false
+
+  vars:
+    all_files_g: "{{ lookup('file', '/tmp/file').splitlines() }}"
+
+  tasks:
+     - name: "This will print all the files in /tmp/file "
+       vars:
+#           all_files: "{{ lookup('file', '/tmp/file').splitlines() | replace('\"', '') }}"
+           all_files: "{{ lookup('file', '/tmp/file').splitlines() | replace('\"', '') }}"
+       shell: echo "{{ item }}"
+       with_items: "{{ all_files }} " 
