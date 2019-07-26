@@ -1,0 +1,48 @@
+- name: " Check dir ({{ key_path }}) is exist "
+  local_action: stat path={{ key_path }}
+  register: is_key_path_exe
+
+- name: " Check public ({{key_pub }}) is exist "
+  local_action: stat path={{key_pub }}
+  register: is_key_pub_exe
+  when: is_key_path_exe.stat.exists 
+
+- name: " Check public ({{ key_pri }}) is exist "
+  local_action: stat path={{key_pri }}
+  register: is_key_pri_exe
+  when: is_key_path_exe.stat.exists 
+
+- name: " Rename old keys ({{key_path}}) "
+  local_action: shell mv {{key_pri}} {{key_pri}}.old && mv {{key_pub}} {{key_pub}}.old
+  register: is_key_rename
+  when: is_key_path_exe.stat.exists == True and is_key_pri_exe.stat.exists == True and is_key_pub_exe.stat.exists == True
+
+- name: " Generate key at ({{key_path}}) "
+  local_action: shell sudo -u {{user}} ssh-keygen -f {{key_pri}} -t rsa -N '' 
+  register: is_key_gen
+  when: is_key_path_exe.stat.exists == True 
+
+- name: " Read new key ({{key_path}}) "
+  local_action: shell cat {{key_pub}}
+  register: l_pub_key
+  when: is_key_gen.rc == 0
+
+- name: " Read old key ({{key_path}}) "
+  local_action: shell cat {{key_pub}}.old
+  register: l_pub_key_old
+  when: is_key_gen.rc == 0
+
+- name: " Set authorized key for user {{key_user}} copying it from key path {{key_path}} "
+  authorized_key:
+   user: '{{key_user}}'
+   key: '{{ l_pub_key.stdout }}'
+
+- name: " Remove old public key {{key_path}} "
+  authorized_key:
+    user: '{{key_user}}'
+    key: '{{ l_pub_key_old.stdout }}'
+    state: absent
+    exclusive: False
+
+- debug:
+   msg: " [ {{ l_pub_key.stdout }} ] public key copyed. "

@@ -1,0 +1,11 @@
+---
+- hosts : all
+  become : true
+  roles : 
+  - rotate 
+  vars:
+    user: "root"
+    key_user: "samco"
+    key_path: "{{ playbook_dir }}/roles/{{ role_name }}/keys"
+    key_pub: "{{ playbook_dir }}/roles/{{ role_name }}/keys/key.pub"
+    key_pri: "{{ playbook_dir }}/roles/{{ role_name }}/keys/key"
