@@ -1,0 +1,73 @@
+- hosts: all 
+  gather_facts: false 
+  become: true
+
+  vars:
+    pack_install: [ 'software-properties-common', 'php-pear', 'nginx', 'php7.2*', 'php7.2-mysql', 'mysql-server-5.7' , 'vim', 'curl', 'php7.2-mongodb', 'wget', 'net-tools', 'net-tools', 'python-mysqldb' ]
+    # pack_remove: [ 'apache2*', 'php*', 'php-common', 'mysql*' ]
+    pack_remove: [ 'software-properties-common', 'php-pear', 'nginx', 'php7.2*', 'php7.2-mysql', 'mysql-server-5.7' , 'vim', 'curl', 'php7.2-mongodb', 'wget', 'net-tools', 'net-tools' ]
+    pecl_install: [ 'mongodb', 'stats-2.0.3' ]
+    pecl_ext_file:
+      - { ini: "stats", con: "extension=/usr/lib/php/20170718/stats.so" }
+    pack_repo: [ 'ondrej/php' ]
+    stack_service: [ 'nginx', 'php7.2-fpm' , 'mysql' ]
+    download_deb:
+      - { name: "skype.deb", url: 'https://go.skype.com/skypeforlinux-64.deb' }
+      - { name: "google-chrome.deb", url: 'https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb' }
+  
+  tasks:
+#     - name: "Remove packages."
+#       become: true
+#       ignore_errors: yes
+#       apt:
+#         name="{{ pack_remove }}" state=absent purge=yes force=yes update_cache=yes
+         
+     - name: "Adding repository"
+       become: true
+       apt_repository:
+         repo: ppa:{{ item }}
+       with_items: "{{ pack_repo }}"
+
+     - name: "Install Packages."
+       become: true
+       apt:
+         name="{{ pack_install }}" state=present update_cache=yes force=yes
+
+     - name: "Enable services"
+       become: true
+       service:
+         name="{{ item }}" state=started enabled=true
+       with_items: "{{ stack_service }}"
+
+     - name: "Add password for mysql root user."
+       become: true
+       mysql_user:
+         name=root password=root@123 login_user=root login_password=root@123 check_implicit_admin=yes
+
+     - name: "Install pecl extention for php-fpm"
+       ignore_errors: yes
+       become: true
+       shell: pecl channel-update pecl.php.net; pecl install stats-2.0.3;
+       register: install_stats
+
+     - name: "Add extention to ini"
+       become: true 
+       copy: dest=/etc/php/7.2/mods-available/{{ item.ini }}.ini mode=644 content={{ item.con }} 
+       with_items: "{{ pecl_ext_file }}"
+
+     - name: "Create link of ini file."
+       become: true 
+       file: src=/etc/php/7.2/mods-available/{{ item.ini }}.ini path=/etc/php/7.2/cli/conf.d/{{ item.ini }}.ini mode=644 state=link   
+       with_items: "{{ pecl_ext_file }}"
+
+     - name: "Restart php-fpm service."
+       become: true 
+       service: name="php7.2-fpm" state=restarted
+
+     - name: "Download deb files."
+       get_url: url={{item.url}} dest=/home/{{ansible_user}}/Downloads/{{item.name}} mode='0755'
+       with_items: "{{ download_deb }}"
+
+     - name: "Install all deb"
+       apt: deb=/home/{{ansible_user}}/Downloads/{{item.name}}
+       with_items: "{{ download_deb }}"
