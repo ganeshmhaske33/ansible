@@ -1,0 +1,74 @@
+- hosts: localhost
+  gather_facts: true
+  vars:
+    user: "{{ ansible_ssh_user }}"
+    date: "{{ lookup('pipe','date +%d%m%Y') }}"
+    app_name: project                                               ## project name
+    home_dir: /home/user                                            ## home directory 
+    repo_dir: "{{home_dir}}/Middleware/workspace/Project-Stag"      ## checkout direcotry in home.
+    repo_app_dir: "{{repo_dir}}"
+    project_dir: "/var/www/html/{{app_name}}/public_html"           ## web root
+    repo_url: bitbucket.org/team/project.git                        ## .git file url 
+    repo_user: username                                             ## username
+    repo_password: password                                         ## password
+    branch: branchname                                              ## branch name
+    last_commit_id: "{{ lookup('file', '{{home_dir}}/var/log/{{app_name}}-{{branch}}-last-deploy-id.txt') }}"
+
+  tasks:
+    - name: "Clone git repository - https://{{repo_url}} - {{branch}} branch/tag to {{repo_dir}} path"
+      git: repo=https://{{ repo_user | urlencode }}:{{ repo_password | urlencode }}@{{ repo_url }} dest={{ repo_dir }} version={{branch}} force=yes update=yes
+      register: repo_clone
+
+    - name: "Find the affected files since the {{last_commit_id}} at {{repo_app_dir}}"
+      shell: git diff --diff-filter=ACM --name-only "{{last_commit_id}}" HEAD | sed 's/^/"/g' | sed 's/$/"/g'
+      register: affected_files
+      args:
+        chdir: "{{repo_app_dir}}"
+      failed_when: affected_files.stdout == ""
+
+    - name: "The affected files are."
+      debug:
+        msg: "{{affected_files.stdout}}"
+
+    - name: "get current head position"
+      command: git rev-parse --short HEAD
+      register: current_head
+      args:
+        chdir: "{{repo_app_dir}}"
+
+    - name: "Archive files from Git Repository at {{repo_app_dir}}"
+      command: git archive -o "{{app_name}}-{{date}}.zip" HEAD {{affected_files.stdout}}
+      args:
+        chdir: "{{repo_app_dir}}"
+
+    - name: "Create tar befor deploy."
+      command: tar -cvf {{app_name}}-{{current_head.stdout}}-{{last_commit_id}}.tar {{affected_files.stdout}}
+      args:
+        chdir: "{{project_dir}}"
+      failed_when: affected_files.stdout == ""
+
+    - name: "Store backup befor deployed."
+      copy: remote_src=False src={{project_dir}}/{{app_name}}-{{current_head.stdout}}-{{last_commit_id}}.tar dest=/var/www/html/{{app_name}}/commit-backup/
+      failed_when: affected_files.stdout == ""
+
+    - name: "remove backup tar from web root."
+      file: path={{project_dir}}/{{app_name}}-{{current_head.stdout}}-{{last_commit_id}}.tar state=absent
+      failed_when: affected_files.stdout == ""
+
+    - name: "Extract archived files to Nginx's DocRoot path - {{project_dir}}"
+      become: true
+      unarchive: src={{repo_app_dir}}/{{app_name}}-{{date}}.zip  dest={{project_dir}} remote_src=yes
+
+    - name: "Remove unwanted files/folder from {{repo_app_dir}}"
+      become: true
+      file: path={{repo_app_dir}}/{{app_name}}-{{date}}.zip state=absent
+
+    - name: "Store latest commit id in {{home_dir}}/var/log/{{app_name}}-{{branch}}-last-deploy-id.txt"
+      command: git rev-parse --short HEAD
+      register: last_deployed_id
+      args:
+        chdir: "{{repo_app_dir}}"
+
+    - local_action: copy content="{{ last_deployed_id.stdout }}" dest={{home_dir}}/var/log/{{app_name}}-{{branch}}-last-deploy-id.txt
+
+    - local_action: copy content="{{ affected_files.stdout }}" dest={{home_dir}}/var/log/{{app_name}}-{{branch}}-affected-file.txt
