@@ -1,0 +1,30 @@
+- hosts: localhost 
+  vars:
+    end: '"application/controllers/Stockbasketratings.end"'
+
+  tasks:
+     - name: "Replace start with given char"
+       debug:
+        msg: "{{ 'ganesh how are you' | regex_replace('^ganesh','manish')}}"
+         
+     - name: "Replace end with given char"
+       debug:
+        msg: "{{ 'ganesh how are you. can you come here ganesh' | regex_replace('ganesh$','manish')}}"
+
+     - name: "Replace any number "
+       debug:
+        msg: "{{ 'ganesh how are you. your phone no is 86555 23' | regex_replace('[0-9]{5,10}','manish')}}"
+
+     - name: "Qute the string."
+       debug:
+        msg: "{{ 'ganesh how are you. your phone no is 86555 23' | quote }}"
+
+     - name: "Qute the string at the end."
+       debug:
+        msg: "yes"
+       when: end | regex_search('.php$')
+
+     - name: "Qute the string at the end."
+       debug:
+        msg: "yes"
+       when: end | regex_search('php"$|end"$')
