@@ -1,0 +1,52 @@
+- hosts: localhost
+
+  vars:
+    pack_install: [ 'openjdk-8-jdk', 'wget' ]
+    tomcat_url_path: 'https://archive.apache.org/dist/tomcat/tomcat-9/v9.0.0.M10/bin/apache-tomcat-9.0.0.M10.tar.gz'
+    jenkin_url_path: 'http://ftp-chi.osuosl.org/pub/jenkins/war-stable/2.176.1/jenkins.war'
+
+  tasks:
+
+#     - name: "Installation of required packages"
+#       apt: name="{{ pack_install }}" state=present force_apt_get=true
+#
+#     - name: "Download tomcat server tar"
+#       get_url: url="{{ tomcat_url_path }}" dest=/tmp/tomcat9.tar.gz 
+#
+#     - name: "Extract tomcat tar"
+#       unarchive: src=/tmp/tomcat9.tar.gz dest=/tmp
+#
+#     - name: "Copy file to /opt"
+#       become: true
+#       shell: mv /tmp/apache-tomcat-9.0.0.M10 /opt/apache-tomcat
+#
+#     - name: "Remove current tomcat user profile."
+#       become: true
+#       file: path=/opt/apache-tomcat/conf/tomcat-users.xml state=absent
+#
+#     - name: "Add new profile for tomcat user"
+#       become: true
+#       copy:
+#         dest: /opt/apache-tomcat/conf/tomcat-users.xml
+#         content: |
+#           <?xml version='1.0' encoding='utf-8'?>
+#           <tomcat-users>"
+#           <role rolename="manager-gui"/>
+#           <role rolename="manager-script"/>
+#           <role rolename="manager-jmx"/>
+#           <role rolename="manager-jmx"/>
+#               <role rolename="admin-gui"/>
+#               <role rolename="admin-script"/>
+#               <user username="admin" password="admin" roles="manager-gui,manager-script,manager-jmx,manager-status,admin-gui,admin-script"/>
+#           </tomcat-users>"
+#
+#     - name: "Download jenkins war"
+#       get_url: url="{{ jenkin_url_path }}" dest=/tmp/jenkins.war
+
+     - name: "Deploy jenkins war"
+       become: true
+       shell: mv /tmp/jenkins.war /opt/apache-tomcat/webapps
+
+     - name: "Start tomcat"
+       become: true
+       shell: /opt/apache-tomcat/bin/startup.sh
