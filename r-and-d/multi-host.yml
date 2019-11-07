@@ -1,0 +1,11 @@
+- hosts: localhost
+  gather_facts: false
+  tasks:
+  - debug:
+      msg: "I'm on {{ ansible_host }}"
+
+- hosts: anil
+  gather_facts: false
+  tasks:
+  - debug:
+      msg: "I'm on {{ ansible_host }}"
